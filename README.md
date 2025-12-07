@@ -1,4 +1,4 @@
-# 💫 Hey! I am Mukesh Krishnaa :
+# 💫 Hey! its mukesh here :
 🔭 I’m currently unemployed👯 I’m looking to collaborate 🤝 I’m looking for help with anyone who is interested🌱 I’m currently learning python💬 Ask me about games⚡ Fun fact
 
 
