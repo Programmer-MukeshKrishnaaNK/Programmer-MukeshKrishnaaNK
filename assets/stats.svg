@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 190" role="img">
+<defs>
+ <linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#00ff9d"/><stop offset="1" stop-color="#62e6ff"/></linearGradient>
+</defs>
+<rect width="1000" height="190" rx="18" fill="#090d12" stroke="#27313a"/>
+<g font-family="monospace">
+ <text x="38" y="38" fill="#6b7280" font-size="14">$ github --stats</text>
+ <g transform="translate(38,58)">
+  <rect width="210" height="90" rx="10" fill="#0d1319" stroke="#202a33"/>
+  <text x="18" y="28" fill="#7e8a96" font-size="12">PUBLIC REPOS</text>
+  <text id="repos" x="18" y="67" fill="url(#g)" font-size="32" font-weight="700">--</text>
+ </g>
+ <g transform="translate(270,58)">
+  <rect width="210" height="90" rx="10" fill="#0d1319" stroke="#202a33"/>
+  <text x="18" y="28" fill="#7e8a96" font-size="12">FOLLOWERS</text>
+  <text id="followers" x="18" y="67" fill="url(#g)" font-size="32" font-weight="700">--</text>
+ </g>
+ <g transform="translate(502,58)">
+  <rect width="210" height="90" rx="10" fill="#0d1319" stroke="#202a33"/>
+  <text x="18" y="28" fill="#7e8a96" font-size="12">STARS</text>
+  <text id="stars" x="18" y="67" fill="url(#g)" font-size="32" font-weight="700">--</text>
+ </g>
+ <g transform="translate(734,58)">
+  <rect width="228" height="90" rx="10" fill="#0d1319" stroke="#202a33"/>
+  <text x="18" y="28" fill="#7e8a96" font-size="12">LAST UPDATED</text>
+  <text id="updated" x="18" y="67" fill="#c8d1da" font-size="20">--</text>
+ </g>
+</g>
+</svg>

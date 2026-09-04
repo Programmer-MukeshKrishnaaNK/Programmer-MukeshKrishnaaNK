@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 150" role="img">
+<defs>
+ <linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#00ff9d"/><stop offset="1" stop-color="#62e6ff"/></linearGradient>
+</defs>
+<rect width="1000" height="150" rx="18" fill="#090d12" stroke="#27313a"/>
+<text x="35" y="30" fill="#6b7280" font-family="monospace" font-size="13">$ activity --live</text>
+<g id="cells"></g>
+<script><![CDATA[
+/* GitHub strips scripts from README SVGs. This script is intentionally empty.
+   The Python generator writes the cells directly into the SVG. */
+]]></script>
+</svg>
