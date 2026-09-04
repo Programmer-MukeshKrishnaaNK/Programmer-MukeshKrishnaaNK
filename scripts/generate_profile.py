@@ -1,220 +1,152 @@
 #!/usr/bin/env python3
-from __future__ import annotations
-import datetime as dt, json, os, urllib.request, urllib.error, math
+import json, os, re, urllib.request
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+from html import escape
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = ROOT / "assets"
-FONT = ASSETS / "fonts" / "InstrumentSerif-Regular.ttf"
-ITALIC = ASSETS / "fonts" / "InstrumentSerif-Italic.ttf"
+ASSETS = ROOT / 'assets'
+USERNAME = os.getenv('GITHUB_USERNAME', 'Programmer-MukeshKrishnaaNK')
 
-USERNAME = os.environ.get("GITHUB_USERNAME", "Programmer-MukeshKrishnaaNK")
+# Keep the font inside the SVG so GitHub doesn't need to fetch a web font.
+def b64(path):
+    import base64
+    return base64.b64encode(path.read_bytes()).decode()
 
-BG = (248,248,246)
-INK = (16,16,16)
-MID = (112,112,108)
-LIGHT = (218,218,214)
-WHITE = (255,255,255)
+FONT = b64(ROOT / 'fonts' / 'InstrumentSerif-Regular.woff2')
+ITALIC = b64(ROOT / 'fonts' / 'InstrumentSerif-Italic.woff2')
+FONT_CSS = (
+    "@font-face{font-family:InstrumentSerif;src:url(data:font/woff2;base64," + FONT + ") format('woff2');font-weight:400}"
+    "@font-face{font-family:InstrumentSerif;src:url(data:font/woff2;base64," + ITALIC + ") format('woff2');font-style:italic;font-weight:400}"
+)
 
-def font(path, size):
-    return ImageFont.truetype(str(path), size)
+STYLE = f'''<style>{FONT_CSS}
+.serif{{font-family:InstrumentSerif,Georgia,serif}} .mono{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}
+.muted{{fill:#6b6b6b}} .ink{{fill:#111}} .line{{stroke:#111;stroke-width:1}}
+</style>'''
 
-def mono(size):
-    # GitHub runners normally have DejaVu Sans Mono; fallback is PIL default.
-    for p in [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-        "/usr/share/fonts/truetype/liberation2/LiberationMono-Regular.ttf",
-    ]:
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+def wrap(body, w, h):
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">{STYLE}{body}</svg>'
 
-def fit_text(draw, text, fnt, max_w):
-    # Instrument Serif is display-oriented; shrink until it fits.
-    size = fnt.size
-    path = FONT
-    while draw.textbbox((0,0), text, font=fnt)[2] > max_w and size > 20:
-        size -= 2
-        fnt = font(path, size)
-    return fnt
-
-def api(path):
-    token = os.environ.get("GITHUB_TOKEN","")
-    req = urllib.request.Request(
-        "https://api.github.com" + path,
-        headers={
-            "Accept":"application/vnd.github+json",
-            "Authorization":f"Bearer {token}",
-            "X-GitHub-Api-Version":"2022-11-28",
-            "User-Agent":"mukesh-github-profile",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=30) as r:
+def fetch_json(url):
+    req = urllib.request.Request(url, headers={'User-Agent':'Mukesh-GitHub-Profile'})
+    token = os.getenv('GITHUB_TOKEN')
+    if token:
+        req.add_header('Authorization', f'Bearer {token}')
+    with urllib.request.urlopen(req, timeout=20) as r:
         return json.load(r)
 
-def graphql(query, variables):
-    token = os.environ.get("GITHUB_TOKEN","")
-    body = json.dumps({"query":query, "variables":variables}).encode()
-    req = urllib.request.Request(
-        "https://api.github.com/graphql",
-        data=body,
-        headers={
-            "Accept":"application/vnd.github+json",
-            "Authorization":f"Bearer {token}",
-            "Content-Type":"application/json",
-            "User-Agent":"mukesh-github-profile",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.load(r)
+def github_stats():
+    try:
+        user = fetch_json(f'https://api.github.com/users/{USERNAME}')
+        repos = []
+        page = 1
+        while page <= 5:
+            data = fetch_json(f'https://api.github.com/users/{USERNAME}/repos?per_page=100&page={page}&type=owner')
+            if not data: break
+            repos.extend(data)
+            if len(data) < 100: break
+            page += 1
+        return {
+            'repos': user.get('public_repos', len(repos)),
+            'followers': user.get('followers', 0),
+            'stars': sum(r.get('stargazers_count', 0) for r in repos),
+        }
+    except Exception:
+        return {'repos':'—','followers':'—','stars':'—'}
 
-def save_gif(frames, path, duration=90):
-    frames[0].save(path, save_all=True, append_images=frames[1:], duration=duration, loop=0, optimize=True)
+def contributions():
+    # GitHub's public contribution page is enough for a self-hosted profile graphic.
+    try:
+        req = urllib.request.Request(
+            f'https://github.com/users/{USERNAME}/contributions',
+            headers={'User-Agent':'Mukesh-GitHub-Profile'}
+        )
+        html = urllib.request.urlopen(req, timeout=20).read().decode('utf-8', 'ignore')
+        vals = [int(x) for x in re.findall(r'data-level="(\d+)"', html)]
+        # 364 cells = 52 weeks x 7 days; GitHub may return slightly more depending on range.
+        return (vals[-364:] if len(vals) >= 364 else [0]*364)
+    except Exception:
+        return [0]*364
 
-def draw_rule(draw, y, x1=70, x2=1130, width=1):
-    draw.line((x1,y,x2,y), fill=LIGHT, width=width)
+def bar(value, scale=10):
+    try:
+        return max(8, min(656, int(float(value) * scale)))
+    except Exception:
+        return 40
 
 def make_hero():
-    W,H=1200,420
-    frames=[]
-    title="MUKESH"
-    sub="KRISHNAA NK"
-    for i in range(30):
-        im=Image.new("RGB",(W,H),BG); d=ImageDraw.Draw(im)
-        d.text((70,48),"01 / PROFILE",font=mono(16),fill=MID)
-        d.text((1060,48),"2026",font=mono(16),fill=MID,anchor="ra")
-        draw_rule(d,78)
-        # Keep the first frame complete, then add subtle motion so GitHub never
-        # shows an empty-looking poster even before the GIF advances.
-        f=fit_text(d,title,font(FONT,126),900)
-        y_shift = int(2 * math.sin(i/4))
-        d.text((68,y_shift+120),title,font=f,fill=INK)
-        d.text((70,248),sub,font=font(ITALIC,62),fill=INK)
-        # Blinking editorial cursor
-        if (i//4)%2==0:
-            d.rectangle((70,323,78,335),fill=INK)
-        # Moving editorial line
-        x=70 + ((i*32) % 780)
-        d.line((x,324,x+210,324),fill=INK,width=2)
-        d.ellipse((x+214,319,x+224,329),fill=INK)
-        d.text((70,352),"student / builder / creative developer",font=mono(16),fill=MID)
-        d.text((1130,352),"github.com/Programmer-MukeshKrishnaaNK",font=mono(13),fill=MID,anchor="ra")
-        frames.append(im)
-    save_gif(frames, ASSETS/"hero.gif", 85)
+    body='''
+<rect width="724" height="300" fill="#fff"/>
+<text x="24" y="28" class="mono muted" font-size="11" letter-spacing="2">PROFILE / 2026</text>
+<text x="24" y="105" class="serif ink" font-size="72" opacity="0">MUKESH KRISHNAA
+ <animate attributeName="opacity" values="0;1" begin="0.1s" dur="0.55s" fill="freeze"/>
+ <animateTransform attributeName="transform" type="translate" values="0 14;0 0" begin="0.1s" dur="0.65s" fill="freeze"/>
+</text>
+<text x="24" y="166" class="serif" font-size="58" font-style="italic" opacity="0">developer / builder
+ <animate attributeName="opacity" values="0;1" begin="0.75s" dur="0.55s" fill="freeze"/>
+ <animateTransform attributeName="transform" type="translate" values="0 12;0 0" begin="0.75s" dur="0.65s" fill="freeze"/>
+</text>
+<line x1="24" y1="191" x2="24" y2="191" class="line"><animate attributeName="x2" from="24" to="680" begin="1.35s" dur="0.9s" fill="freeze"/></line>
+<text x="24" y="222" class="mono muted" font-size="12">python · typescript · sql · interfaces · motion</text>
+<text x="24" y="265" class="mono ink" font-size="12">$ ./build_profile</text>
+<rect x="143" y="254" width="7" height="15" class="ink" opacity="0"><animate attributeName="opacity" values="0;0.8;0" dur="1s" begin="1.7s" repeatCount="indefinite"/></rect>
+<g transform="translate(666 38)"><circle cx="0" cy="0" r="14" fill="none" stroke="#111"/><path d="M0 -8 L0 8 M-8 0 L8 0" stroke="#111"/><animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="8s" repeatCount="indefinite"/></g>
+'''
+    (ASSETS/'hero.svg').write_text(wrap(body,724,300), encoding='utf-8')
 
-def make_stats(stats):
-    W,H=1200,300
-    frames=[]
-    labels=[("REPOSITORIES",stats["repos"]),("FOLLOWERS",stats["followers"]),("STARS",stats["stars"])]
-    for i in range(32):
-        im=Image.new("RGB",(W,H),BG); d=ImageDraw.Draw(im)
-        d.text((70,34),"02 / SIGNAL",font=mono(16),fill=MID)
-        d.text((1130,34),"LIVE DATA",font=mono(16),fill=MID,anchor="ra")
-        draw_rule(d,64)
-        xs=[70,450,830]
-        for j,(lab,val) in enumerate(labels):
-            x=xs[j]
-            d.text((x,90),lab,font=mono(14),fill=MID)
-            shown=int(round(val*min(1,max(0,(i-j*4)/16))))
-            f=font(FONT,82)
-            d.text((x,124),str(shown),font=f,fill=INK)
-            # underline grows
-            prog=min(1,max(0,(i-4-j*3)/18))
-            d.line((x,225,x+280*prog,225),fill=INK,width=3)
-            d.ellipse((x+280*prog-3,222,x+280*prog+3,228),fill=INK)
-        d.text((70,260),f"updated {stats['updated']}",font=mono(13),fill=MID)
-        frames.append(im)
-    save_gif(frames, ASSETS/"stats.gif", 95)
+def make_stack():
+    body='''<rect width="724" height="245" fill="#fff"/>
+<text x="24" y="42" class="serif ink" font-size="38">stack</text>
+<text x="24" y="64" class="mono muted" font-size="11">things I actually build with</text>
+<g class="mono ink" font-size="14">
+<text x="24" y="105" opacity="0">PYTHON<tspan class="muted"> / automation, data, tooling</tspan><animate attributeName="opacity" from="0" to="1" begin="0.2s" dur="0.4s" fill="freeze"/></text>
+<text x="24" y="135" opacity="0">TYPESCRIPT<tspan class="muted"> / interfaces, web apps</tspan><animate attributeName="opacity" from="0" to="1" begin="0.45s" dur="0.4s" fill="freeze"/></text>
+<text x="24" y="165" opacity="0">SQL<tspan class="muted"> / data, queries, systems</tspan><animate attributeName="opacity" from="0" to="1" begin="0.7s" dur="0.4s" fill="freeze"/></text>
+<text x="24" y="195" opacity="0">FIGMA + MOTION<tspan class="muted"> / product, interaction</tspan><animate attributeName="opacity" from="0" to="1" begin="0.95s" dur="0.4s" fill="freeze"/></text></g>
+<line x1="24" y1="220" x2="24" y2="220" class="line"><animate attributeName="x2" from="24" to="680" begin="1.2s" dur="0.8s" fill="freeze"/></line>'''
+    (ASSETS/'stack.svg').write_text(wrap(body,724,245), encoding='utf-8')
 
 def make_projects():
     projects=[
-      ("Smart Restaurant Reservation Website System","HTML"),
-      ("The Midnight Library","AI / WEB"),
-      ("ether-lofi-experience","MOTION / WEB"),
-      ("Cafe Theme Page","ANIMATION"),
-      ("Portfolio","TYPESCRIPT"),
-      ("metrics-dashboard-build","DASHBOARD"),
+        ('Smart Restaurant Reservation Website System','HTML'),
+        ('ether-lofi-experience','web / motion'),
+        ('The Midnight Library','AI / web'),
+        ('Cafe Theme Page','web / animation'),
+        ('Portfolio-','TypeScript'),
+        ('metrics-dashboard-build','dashboard'),
     ]
-    W,H=1200,360
-    frames=[]
-    for i in range(42):
-        im=Image.new("RGB",(W,H),BG); d=ImageDraw.Draw(im)
-        d.text((70,34),"03 / WORK",font=mono(16),fill=MID)
-        d.text((1130,34),"SELECTED PUBLIC PROJECTS",font=mono(13),fill=MID,anchor="ra")
-        draw_rule(d,64)
-        idx=(i//7)%len(projects)
-        title,tag=projects[idx]
-        phase=(i%7)/7
-        # slide/fade feel via x offset
-        off=int((1-phase)*55)
-        d.text((70+off,108),title,font=font(FONT,62),fill=INK)
-        d.text((72,184),tag,font=mono(15),fill=MID)
-        d.text((72,230),"published work / interface experiments / tools",font=mono(14),fill=MID)
-        # index rail
-        for j in range(len(projects)):
-            x=70+j*42
-            active=(j==idx)
-            d.rectangle((x,295,x+26,299),fill=INK if active else LIGHT)
-        d.text((1130,280),f"{idx+1:02d} / {len(projects):02d}",font=mono(14),fill=MID,anchor="ra")
-        frames.append(im)
-    save_gif(frames, ASSETS/"projects.gif", 105)
+    body='''<rect width="724" height="365" fill="#fff"/><text x="24" y="42" class="serif ink" font-size="38">projects</text><text x="24" y="64" class="mono muted" font-size="11">published work / no placeholders</text>'''
+    for i,(name,tag) in enumerate(projects):
+        y=95+i*42; d=0.25+i*0.18
+        body += f'''<g opacity="0"><text x="24" y="{y}" class="serif ink" font-size="21">{escape(name)}</text><text x="680" y="{y}" class="mono muted" font-size="10" text-anchor="end">{escape(tag)}</text><line x1="24" y1="{y+10}" x2="680" y2="{y+10}" class="line"/><animate attributeName="opacity" from="0" to="1" begin="{d:.2f}s" dur="0.45s" fill="freeze"/></g>'''
+    (ASSETS/'projects.svg').write_text(wrap(body,724,365), encoding='utf-8')
 
-def make_contrib(days, total):
-    W,H=1200,300
-    frames=[]
-    # last 52 weeks x 7 days
-    vals=[d["contributionCount"] for w in days for d in w["contributionDays"]]
-    vals=vals[-364:] if len(vals)>=364 else vals
-    vals=( [0]*(364-len(vals)) + vals )
-    grid=[vals[c*7:(c+1)*7] for c in range(52)]
-    maxv=max(vals) if vals else 1
-    for i in range(28):
-        im=Image.new("RGB",(W,H),BG); d=ImageDraw.Draw(im)
-        d.text((70,34),"04 / ACTIVITY",font=mono(16),fill=MID)
-        d.text((1130,34),f"{total} CONTRIBUTIONS",font=mono(13),fill=MID,anchor="ra")
-        draw_rule(d,64)
-        cell=15; gap=4; x0=70; y0=100
-        progress=min(1,i/18)
-        for c,col in enumerate(grid):
-            for r,v in enumerate(col):
-                threshold=(c*7+r)/364
-                if threshold <= progress:
-                    level=min(4,int((v/maxv)*4)+1) if v else 0
-                else: level=0
-                # monochrome levels
-                fills=[BG,(232,232,228),(190,190,185),(110,110,105),INK]
-                x=x0+c*(cell+gap); y=y0+r*(cell+gap)
-                d.rounded_rectangle((x,y,x+cell,y+cell),radius=3,fill=fills[level])
-        d.text((70,265),"quietly building, one contribution at a time",font=font(ITALIC,25),fill=INK)
-        # Always animate a subtle sweep, even when the account has a quiet week.
-        sx = 70 + int((1060 * ((i % 20) / 19)))
-        d.line((sx,88,sx+46,88),fill=INK,width=2)
-        frames.append(im)
-    save_gif(frames, ASSETS/"contributions.gif", 100)
+def make_stats():
+    s=github_stats(); repos=s['repos']; followers=s['followers']; stars=s['stars']
+    body=f'''<rect width="724" height="270" fill="#fff"/><text x="24" y="44" class="serif ink" font-size="38">stats</text><text x="24" y="67" class="mono muted" font-size="11">generated from GitHub / updated by action</text>
+<g class="mono ink"><text x="24" y="116" font-size="13">PUBLIC REPOS</text><text x="680" y="116" font-size="30" text-anchor="end">{repos}</text><rect x="24" y="128" width="656" height="2" fill="#111" opacity="0.12"/><rect x="24" y="128" width="0" height="2" fill="#111"><animate attributeName="width" from="0" to="{bar(repos,28)}" begin="0.35s" dur="0.9s" fill="freeze"/></rect>
+<text x="24" y="171" font-size="13">FOLLOWERS</text><text x="680" y="171" font-size="30" text-anchor="end">{followers}</text><rect x="24" y="183" width="656" height="2" fill="#111" opacity="0.12"/><rect x="24" y="183" width="0" height="2" fill="#111"><animate attributeName="width" from="0" to="{bar(followers,16)}" begin="0.65s" dur="0.9s" fill="freeze"/></rect>
+<text x="24" y="226" font-size="13">STARS</text><text x="680" y="226" font-size="30" text-anchor="end">{stars}</text><rect x="24" y="238" width="656" height="2" fill="#111" opacity="0.12"/><rect x="24" y="238" width="0" height="2" fill="#111"><animate attributeName="width" from="0" to="{bar(stars,40)}" begin="0.95s" dur="0.9s" fill="freeze"/></rect></g>'''
+    (ASSETS/'stats.svg').write_text(wrap(body,724,270), encoding='utf-8')
+
+def make_contrib():
+    vals=contributions()
+    cells=[]
+    # 52 columns, 7 rows; subtle staggered reveal like the reference SVG.
+    shades=['#f1f1f1','#d8d8d8','#bdbdbd','#777','#111']
+    for i,v in enumerate(vals):
+        col=i//7; row=i%7
+        x=24+col*12.5; y=76+row*9.2
+        shade=shades[min(4,max(0,v))]
+        delay=1.0 + i*0.012
+        cells.append(f'''<rect x="{x:.1f}" y="{y:.1f}" width="9" height="6" rx="1" fill="{shade}" opacity="0"><animate attributeName="opacity" from="0" to="1" begin="{delay:.3f}s" dur="0.12s" fill="freeze"/></rect>''')
+    body='''<rect width="724" height="150" fill="#fff"/><text x="24" y="38" class="serif ink" font-size="34">activity</text><text x="24" y="58" class="mono muted" font-size="10">contribution rhythm / last 52 weeks</text>''' + ''.join(cells)
+    (ASSETS/'contributions.svg').write_text(wrap(body,724,150), encoding='utf-8')
 
 def main():
-    # Safe fallback values if API is unavailable during a local preview.
-    repos_n, followers, stars = 7, 0, 0
-    total=0; weeks=[]
-    try:
-        user=api(f"/users/{USERNAME}")
-        repos=api(f"/users/{USERNAME}/repos?per_page=100&sort=updated")
-        repos_n=user.get("public_repos",0)
-        followers=user.get("followers",0)
-        stars=sum(r.get("stargazers_count",0) for r in repos)
-    except Exception:
-        pass
-    try:
-        q="""query($login:String!){user(login:$login){contributionsCollection{contributionCalendar{totalContributions,weeks{contributionDays{contributionCount,date}}}}}}"""
-        out=graphql(q,{"login":USERNAME})
-        cal=out["data"]["user"]["contributionsCollection"]["contributionCalendar"]
-        total=cal["totalContributions"]; weeks=cal["weeks"]
-    except Exception:
-        weeks=[{"contributionDays":[{"contributionCount":0,"date":""} for _ in range(7)]} for _ in range(52)]
-    stats={"repos":repos_n,"followers":followers,"stars":stars,"updated":dt.date.today().isoformat()}
-    make_hero(); make_stats(stats); make_projects(); make_contrib(weeks,total)
+    ASSETS.mkdir(exist_ok=True)
+    make_hero(); make_stack(); make_projects(); make_stats(); make_contrib()
+    print('Generated profile SVGs for', USERNAME)
 
-if __name__=="__main__":
+if __name__ == '__main__':
     main()

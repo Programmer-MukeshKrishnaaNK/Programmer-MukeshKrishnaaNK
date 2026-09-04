@@ -1,0 +1,4 @@
+Instrument Serif
+
+The bundled Instrument Serif font files are from the Instrument Serif project and are licensed under the SIL Open Font License 1.1.
+See fonts/OFL.txt for the license text.
