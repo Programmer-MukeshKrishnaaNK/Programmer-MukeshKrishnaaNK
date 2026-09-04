@@ -1,11 +1,32 @@
-# Public projects shown in the README.
-# Keep only repositories that are actually public.
-
 PROJECTS = [
-    ("Smart-Restaurant-Reservation-Website-System", "Restaurant reservation web system"),
-    ("ether-lofi-experience", "Cinematic lofi focus environment"),
-    ("The-Midnight-Library", "AI-powered digital reading experience"),
-    ("Cafe-Theme-Page", "Animated café themed web experience"),
-    ("Portfolio-", "Personal portfolio"),
-    ("metrics-dashboard-build", "Metrics dashboard"),
+    {
+        "name": "Smart-Restaurant-Reservation-Website-System",
+        "title": "Smart Restaurant Reservation Website System",
+        "description": "Restaurant reservation web system.",
+    },
+    {
+        "name": "The-Midnight-Library",
+        "title": "The Midnight Library",
+        "description": "AI-powered digital reading experience.",
+    },
+    {
+        "name": "ether-lofi-experience",
+        "title": "ether-lofi-experience",
+        "description": "Cinematic lofi focus environment.",
+    },
+    {
+        "name": "Cafe-Theme-Page",
+        "title": "Cafe Theme Page",
+        "description": "Animated café-themed web experience.",
+    },
+    {
+        "name": "Portfolio-",
+        "title": "Portfolio",
+        "description": "Personal portfolio.",
+    },
+    {
+        "name": "metrics-dashboard-build",
+        "title": "metrics-dashboard-build",
+        "description": "Metrics dashboard project.",
+    },
 ]

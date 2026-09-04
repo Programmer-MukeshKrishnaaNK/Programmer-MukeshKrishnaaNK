@@ -1,61 +1,55 @@
 <div align="center">
 
-<img src="./assets/hero.svg?v=1" width="100%" alt="Mukesh Krishnaa animated GitHub profile hero">
-
-<br>
-
-<img src="./assets/stats.svg?v=1" width="100%" alt="Live GitHub stats">
+<img src="./assets/hero.gif?v=2" width="100%" alt="Mukesh Krishnaa NK — animated profile">
 
 </div>
 
-## `~/about`
+## Selected work
 
-> **Student. Builder. Experimenter.**
+<div align="center">
 
-I like turning ideas into interfaces that feel alive — especially projects with thoughtful motion, clean UI, and a little personality.
+<img src="./assets/projects.gif?v=2" width="100%" alt="Animated selected projects">
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  NOW                                                         ◉ │
-│                                                                 │
-│  learning     →  Python · JavaScript · SQL · Git                │
-│  building     →  web experiences & useful tools                │
-│  exploring    →  AI · product design · creative coding         │
-└─────────────────────────────────────────────────────────────────┘
-```
+</div>
 
-## `~/projects`
-
-| project | what it is |
+| project | |
 |---|---|
-| **Smart Restaurant Reservation Website System** | Restaurant reservation web system |
-| **ether-lofi-experience** | Cinematic lofi focus environment |
-| **The-Midnight-Library** | AI-powered digital reading experience |
-| **Cafe-Theme-Page** | Animated café themed web experience |
-| **Portfolio** | Personal portfolio |
-| **metrics-dashboard-build** | Metrics dashboard |
+| [Smart Restaurant Reservation Website System](https://github.com/Programmer-MukeshKrishnaaNK/Smart-Restaurant-Reservation-Website-System) | restaurant reservation web system |
+| [The Midnight Library](https://github.com/Programmer-MukeshKrishnaaNK/The-Midnight-Library) | AI-powered digital reading experience |
+| [ether-lofi-experience](https://github.com/Programmer-MukeshKrishnaaNK/ether-lofi-experience) | cinematic lofi focus environment |
+| [Cafe Theme Page](https://github.com/Programmer-MukeshKrishnaaNK/Cafe-Theme-Page) | animated café-themed web experience |
+| [Portfolio](https://github.com/Programmer-MukeshKrishnaaNK/Portfolio-) | personal portfolio |
+| [metrics-dashboard-build](https://github.com/Programmer-MukeshKrishnaaNK/metrics-dashboard-build) | metrics dashboard project |
 
-> The project list above is intentionally limited to repositories you have published. Add/remove entries in `scripts/generate_profile.py` whenever your public projects change.
+## Signal
 
-## `~/stack`
+<div align="center">
+
+<img src="./assets/stats.gif?v=2" width="100%" alt="Animated GitHub stats">
+
+</div>
+
+## Stack
 
 ```text
-HTML        ████████████████████
-JavaScript  ████████████████
-TypeScript  █████████████
-Python      ███████████
-SQL         █████████
-Git         ███████████████
+WEB          HTML · CSS · JavaScript · TypeScript
+BACKEND      Python · SQL
+TOOLS        Git · GitHub · Figma
+EXPLORING    AI · product design · creative coding
 ```
 
-## `~/github`
+## Activity
 
-<img src="./assets/contributions.svg?v=1" width="100%" alt="Animated contribution activity">
+<div align="center">
+
+<img src="./assets/contributions.gif?v=2" width="100%" alt="Animated contribution activity">
+
+</div>
 
 ---
 
 <div align="center">
 
-`built with SVG + Python + GitHub Actions`
+`MUKESH KRISHNAA NK`  ·  `BUILD / LEARN / SHIP`
 
 </div>
